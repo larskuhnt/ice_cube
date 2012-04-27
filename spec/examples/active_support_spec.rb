@@ -71,3 +71,39 @@ describe IceCube::Schedule, 'occurs_on?' do
   
 end
 
+describe IceCube::Schedule, '#to_hash' do
+  
+  it "should retain the time zone information of the end time" do
+    Time.zone = 'Pacific Time (US & Canada)'
+    s1 = IceCube::Schedule.new(Time.zone.now, :end_time => Time.zone.now.advance(:hours => 1))
+    s2 = IceCube::Schedule.from_hash(s1.to_hash)
+    s2.end_time.should == s1.end_time
+  end
+  
+  it "should retain the time zone information of the start time" do
+    Time.zone = 'Pacific Time (US & Canada)'
+    s1 = IceCube::Schedule.new(Time.zone.now)
+    s2 = IceCube::Schedule.from_hash(s1.to_hash)
+    s2.start_time.should == s1.start_time
+  end
+  
+end
+
+describe IceCube::Schedule, '#to_yaml' do
+  
+  it "should retain the time zone information of the end time" do
+    Time.zone = 'Pacific Time (US & Canada)'
+    s1 = IceCube::Schedule.new(Time.zone.now, :end_time => Time.zone.now.advance(:hours => 1))
+    s2 = IceCube::Schedule.from_yaml(s1.to_yaml)
+    s2.end_time.should == s1.end_time
+  end
+  
+  it "should retain the time zone information of the start time" do
+    Time.zone = 'Pacific Time (US & Canada)'
+    s1 = IceCube::Schedule.new(Time.zone.now)
+    s2 = IceCube::Schedule.from_yaml(s1.to_yaml)
+    s2.start_time.should == s1.start_time
+  end
+  
+end
+
