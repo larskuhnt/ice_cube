@@ -5,8 +5,8 @@ module IceCube
     # Add hour of day validations
     def hour_of_day(*hours)
       hours.flatten.each do |hour|
-        unless hour.is_a?(Fixnum)
-          raise ArgumentError, "expecting Fixnum value for hour, got #{hour.inspect}"
+        unless hour.is_a?(Integer)
+          raise ArgumentError, "expecting Integer value for hour, got #{hour.inspect}"
         end
         validations_for(:hour_of_day) << Validation.new(hour)
       end
@@ -14,9 +14,7 @@ module IceCube
       self
     end
 
-    class Validation
-
-      include Validations::Lock
+    class Validation < Validations::FixedValue
 
       attr_reader :hour
       alias :value :hour
@@ -27,6 +25,10 @@ module IceCube
 
       def type
         :hour
+      end
+
+      def dst_adjust?
+        true
       end
 
       def build_s(builder)
@@ -42,8 +44,8 @@ module IceCube
       end
 
       StringBuilder.register_formatter(:hour_of_day) do |segments|
-        str = "on the #{StringBuilder.sentence(segments)} "
-        str << (segments.size == 1 ? 'hour of the day' : 'hours of the day')
+        str = StringBuilder.sentence(segments)
+        IceCube::I18n.t('ice_cube.at_hours_of_the_day', count: segments.size, segments: str)
       end
 
     end

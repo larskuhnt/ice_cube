@@ -4,8 +4,8 @@ module IceCube
 
     def month_of_year(*months)
       months.flatten.each do |month|
-        unless month.is_a?(Fixnum) || month.is_a?(Symbol)
-          raise ArgumentError, "expecting Fixnum or Symbol value for month, got #{month.inspect}"
+        unless month.is_a?(Integer) || month.is_a?(Symbol)
+          raise ArgumentError, "expecting Integer or Symbol value for month, got #{month.inspect}"
         end
         month = TimeUtil.sym_to_month(month)
         validations_for(:month_of_year) << Validation.new(month)
@@ -14,9 +14,7 @@ module IceCube
       self
     end
 
-    class Validation
-
-      include Validations::Lock
+    class Validation < Validations::FixedValue
 
       attr_reader :month
       alias :value :month
@@ -29,8 +27,12 @@ module IceCube
         :month
       end
 
+      def dst_adjust?
+        true
+      end
+
       def build_s(builder)
-        builder.piece(:month_of_year) << Date::MONTHNAMES[month]
+        builder.piece(:month_of_year) << IceCube::I18n.t("ice_cube.date.month_names")[month]
       end
 
       def build_hash(builder)
@@ -42,7 +44,7 @@ module IceCube
       end
 
       StringBuilder.register_formatter(:month_of_year) do |segments|
-        "in #{StringBuilder.sentence(segments)}"
+        IceCube::I18n.t("ice_cube.in", target: StringBuilder.sentence(segments))
       end
 
     end

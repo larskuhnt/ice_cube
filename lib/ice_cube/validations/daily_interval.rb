@@ -4,8 +4,8 @@ module IceCube
 
     # Add a new interval validation
     def interval(interval)
-      @interval = interval
-      replace_validations_for(:interval, [Validation.new(interval)])
+      @interval = normalized_interval(interval)
+      replace_validations_for(:interval, [Validation.new(@interval)])
       clobber_base_validations(:wday, :day)
       self
     end
@@ -22,8 +22,12 @@ module IceCube
         :day
       end
 
-      def validate(step_time, schedule)
-        t0, t1 = schedule.start_time, step_time
+      def dst_adjust?
+        true
+      end
+
+      def validate(step_time, start_time)
+        t0, t1 = start_time, step_time
         days = Date.new(t1.year, t1.month, t1.day) -
                Date.new(t0.year, t0.month, t0.day)
         offset = (days % interval).nonzero?
@@ -31,7 +35,7 @@ module IceCube
       end
 
       def build_s(builder)
-        builder.base = interval == 1 ? 'Daily' : "Every #{interval} days"
+        builder.base = IceCube::I18n.t('ice_cube.each_day', count: interval)
       end
 
       def build_hash(builder)

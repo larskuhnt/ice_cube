@@ -4,8 +4,8 @@ module IceCube
 
     def day_of_month(*days)
       days.flatten.each do |day|
-        unless day.is_a?(Fixnum)
-          raise ArgumentError, "expecting Fixnum value for day, got #{day.inspect}"
+        unless day.is_a?(Integer)
+          raise ArgumentError, "expecting Integer value for day, got #{day.inspect}"
         end
         validations_for(:day_of_month) << Validation.new(day)
       end
@@ -13,9 +13,7 @@ module IceCube
       self
     end
 
-    class Validation
-
-      include Validations::Lock
+    class Validation < Validations::FixedValue
 
       attr_reader :day
       alias :value :day
@@ -26,6 +24,10 @@ module IceCube
 
       def type
         :day
+      end
+
+      def dst_adjust?
+        true
       end
 
       def build_s(builder)
@@ -41,9 +43,9 @@ module IceCube
       end
 
       StringBuilder.register_formatter(:day_of_month) do |entries|
-        str = "on the #{StringBuilder.sentence(entries)} "
-        str << (entries.size == 1 ? 'day of the month' : 'days of the month')
-        str
+        sentence = StringBuilder.sentence(entries)
+        str = IceCube::I18n.t('ice_cube.days_of_month', count: entries.size, segments: sentence)
+        IceCube::I18n.t('ice_cube.on', sentence: str)
       end
 
     end

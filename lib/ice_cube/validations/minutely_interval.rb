@@ -3,8 +3,8 @@ module IceCube
   module Validations::MinutelyInterval
 
     def interval(interval)
-      @interval = interval
-      replace_validations_for(:interval, [Validation.new(interval)])
+      @interval = normalized_interval(interval)
+      replace_validations_for(:interval, [Validation.new(@interval)])
       clobber_base_validations(:min)
       self
     end
@@ -25,8 +25,8 @@ module IceCube
         false
       end
 
-      def validate(step_time, schedule)
-        t0, t1 = schedule.start_time.to_i, step_time.to_i
+      def validate(step_time, start_time)
+        t0, t1 = start_time.to_i, step_time.to_i
         sec = (t1 - t1 % ONE_MINUTE) -
               (t0 - t0 % ONE_MINUTE)
         minutes = sec / ONE_MINUTE
@@ -35,7 +35,7 @@ module IceCube
       end
 
       def build_s(builder)
-        builder.base = interval == 1 ? 'Minutely' : "Every #{interval} minutes"
+        builder.base = IceCube::I18n.t('ice_cube.each_minute', count: interval)
       end
 
       def build_hash(builder)

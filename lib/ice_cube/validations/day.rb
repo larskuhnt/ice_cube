@@ -5,9 +5,11 @@ module IceCube
   module Validations::Day
 
     def day(*days)
+      days = days.flatten
+      return self if days.empty?
       days.flatten.each do |day|
-        unless day.is_a?(Fixnum) || day.is_a?(Symbol)
-          raise ArgumentError, "expecting Fixnum or Symbol value for day, got #{day.inspect}"
+        unless day.is_a?(Integer) || day.is_a?(Symbol)
+          raise ArgumentError, "expecting Integer or Symbol value for day, got #{day.inspect}"
         end
         day = TimeUtil.sym_to_wday(day)
         validations_for(:day) << Validation.new(day)
@@ -16,9 +18,7 @@ module IceCube
       self
     end
 
-    class Validation
-
-      include Validations::Lock
+    class Validation < Validations::FixedValue
 
       attr_reader :day
       alias :value :day
@@ -29,6 +29,10 @@ module IceCube
 
       def type
         :wday
+      end
+
+      def dst_adjust?
+        true
       end
 
       def build_s(builder)
@@ -52,12 +56,13 @@ module IceCube
         validation_days.sort!
         # pick the right shortening, if applicable
         if validation_days == [0, 6]
-          'on Weekends'
+          IceCube::I18n.t('ice_cube.on_weekends')
         elsif validation_days == (1..5).to_a
-          'on Weekdays'
+          IceCube::I18n.t('ice_cube.on_weekdays')
         else
-          segments = validation_days.map { |d| "#{Date::DAYNAMES[d]}s" }
-          "on #{StringBuilder.sentence(segments)}"
+          day_names = ->(d){ "#{IceCube::I18n.t("ice_cube.days_on")[d]}" }
+          segments = validation_days.map(&day_names)
+          IceCube::I18n.t('ice_cube.on_days', days: StringBuilder.sentence(segments))
         end
       end
 

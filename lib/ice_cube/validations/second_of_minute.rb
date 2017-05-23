@@ -4,8 +4,8 @@ module IceCube
 
     def second_of_minute(*seconds)
       seconds.flatten.each do |second|
-      unless second.is_a?(Fixnum)
-        raise ArgumentError, "Expecting Fixnum value for second, got #{second.inspect}"
+      unless second.is_a?(Integer)
+        raise ArgumentError, "Expecting Integer value for second, got #{second.inspect}"
       end
         validations_for(:second_of_minute) << Validation.new(second)
       end
@@ -13,9 +13,7 @@ module IceCube
       self
     end
 
-    class Validation
-
-      include Validations::Lock
+    class Validation < Validations::FixedValue
 
       attr_reader :second
       alias :value :second
@@ -26,6 +24,10 @@ module IceCube
 
       def type
         :sec
+      end
+
+      def dst_adjust?
+        false
       end
 
       def build_s(builder)
@@ -41,8 +43,8 @@ module IceCube
       end
 
       StringBuilder.register_formatter(:second_of_minute) do |segments|
-        str = "on the #{StringBuilder.sentence(segments)} "
-        str << (segments.size == 1 ? 'second of the minute' : 'seconds of the minute')
+        str = StringBuilder.sentence(segments)
+        IceCube::I18n.t('ice_cube.on_seconds_of_minute', count: segments.size, segments: str)
       end
 
     end

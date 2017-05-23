@@ -4,7 +4,15 @@ module IceCube
 
   class Rule
 
+    INTERVAL_TYPES = [
+      :secondly, :minutely, :hourly,
+      :daily, :weekly, :monthly, :yearly
+    ]
+
     attr_reader :uses
+
+    def reset
+    end
 
     # Is this a terminating schedule?
     def terminating?
@@ -19,12 +27,16 @@ module IceCube
     end
 
     def hash
-      h = to_hash
-      h.nil? ? super : h.hash
+      to_hash.hash
     end
 
     def to_ical
       raise MethodNotImplemented, "Expected to be overrridden by subclasses"
+    end
+
+    # Convert from ical string and create a rule
+    def self.from_ical(ical)
+      IceCube::IcalParser.rule_from_ical(ical)
     end
 
     # Yaml implementation
@@ -41,26 +53,6 @@ module IceCube
       raise MethodNotImplemented, "Expected to be overridden by subclasses"
     end
 
-    # Convert from a hash and create a rule
-    def self.from_hash(original_hash)
-      hash = IceCube::FlexibleHash.new original_hash
-      return nil unless match = hash[:rule_type].match(/\:\:(.+?)Rule/)
-      rule = IceCube::Rule.send(match[1].downcase.to_sym, hash[:interval] || 1)
-      rule.interval(hash[:interval] || 1, TimeUtil.wday_to_sym(hash[:week_start] || 0)) if match[1] == "Weekly"
-      rule.until(TimeUtil.deserialize_time(hash[:until])) if hash[:until]
-      rule.count(hash[:count]) if hash[:count]
-      hash[:validations] && hash[:validations].each do |key, value|
-        key = key.to_sym unless key.is_a?(Symbol)
-        value.is_a?(Array) ? rule.send(key, *value) : rule.send(key, value)
-      end
-      rule
-    end
-
-    # Reset the uses on the rule to 0
-    def reset
-      @uses = 0
-    end
-
     def next_time(time, schedule, closing_time)
     end
 
@@ -70,7 +62,53 @@ module IceCube
 
     # Whether this rule requires a full run
     def full_required?
-      !@count.nil? || (!@interval.nil? && @interval > 1)
+      !@count.nil?
+    end
+
+    class << self
+
+      # Convert from a hash and create a rule
+      def from_hash(original_hash)
+        hash = IceCube::FlexibleHash.new original_hash
+
+        unless hash[:rule_type] && match = hash[:rule_type].match(/\:\:(.+?)Rule/)
+          raise ArgumentError, 'Invalid rule type'
+        end
+
+        interval_type = match[1].downcase.to_sym
+
+        unless INTERVAL_TYPES.include?(interval_type)
+          raise ArgumentError, "Invalid rule frequency type: #{match[1]}"
+        end
+
+        rule = IceCube::Rule.send(interval_type, hash[:interval] || 1)
+
+        if match[1] == "Weekly"
+          rule.interval(hash[:interval] || 1, TimeUtil.wday_to_sym(hash[:week_start] || 0))
+        end
+
+        rule.until(TimeUtil.deserialize_time(hash[:until])) if hash[:until]
+        rule.count(hash[:count]) if hash[:count]
+
+        hash[:validations] && hash[:validations].each do |name, args|
+          apply_validation(rule, name, args)
+        end
+
+        rule
+      end
+
+      private
+
+      def apply_validation(rule, name, args)
+        name = name.to_sym
+
+        unless ValidatedRule::VALIDATION_ORDER.include?(name)
+          raise ArgumentError, "Invalid rule validation type: #{name}"
+        end
+
+        args.is_a?(Array) ? rule.send(name, *args) : rule.send(name, args)
+      end
+
     end
 
     # Convenience methods for creating Rules

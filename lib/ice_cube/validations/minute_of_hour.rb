@@ -4,8 +4,8 @@ module IceCube
 
     def minute_of_hour(*minutes)
       minutes.flatten.each do |minute|
-        unless minute.is_a?(Fixnum)
-          raise ArgumentError, "expecting Fixnum value for minute, got #{minute.inspect}"
+        unless minute.is_a?(Integer)
+          raise ArgumentError, "expecting Integer value for minute, got #{minute.inspect}"
         end
         validations_for(:minute_of_hour) << Validation.new(minute)
       end
@@ -13,9 +13,7 @@ module IceCube
       self
     end
 
-    class Validation
-
-      include Validations::Lock
+    class Validation < Validations::FixedValue
 
       attr_reader :minute
       alias :value :minute
@@ -26,6 +24,10 @@ module IceCube
 
       def type
         :min
+      end
+
+      def dst_adjust?
+        false
       end
 
       def build_s(builder)
@@ -41,8 +43,8 @@ module IceCube
       end
 
       StringBuilder.register_formatter(:minute_of_hour) do |segments|
-        str = "on the #{StringBuilder.sentence(segments)} "
-        str << (segments.size == 1 ? 'minute of the hour' : 'minutes of the hour')
+        str = StringBuilder.sentence(segments)
+        IceCube::I18n.t('ice_cube.on_minutes_of_hour', count: segments.size, segments: str)
       end
 
     end

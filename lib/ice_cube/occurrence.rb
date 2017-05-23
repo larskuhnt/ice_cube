@@ -84,7 +84,7 @@ module IceCube
     # time formats and is only used when ActiveSupport is available.
     #
     def to_s(format=nil)
-      if format && to_time.public_method(:to_s).arity > 0
+      if format && to_time.public_method(:to_s).arity != 0
         t0, t1 = start_time.to_s(format), end_time.to_s(format)
       else
         t0, t1 = start_time.to_s, end_time.to_s
@@ -93,7 +93,8 @@ module IceCube
     end
 
     def overnight?
-      midnight = Time.new(start_time.year, start_time.month, start_time.day + 1)
+      offset = start_time + 3600 * 24
+      midnight = Time.new(offset.year, offset.month, offset.day)
       midnight < end_time
     end
   end
